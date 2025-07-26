@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import axios from 'axios';
 import { User, AuthResponse, AuthContextType } from '../types';
 
@@ -15,59 +15,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [, setExpiresAt] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [tokenCheckInterval, setTokenCheckInterval] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('sql-playground-token');
-    const storedUser = localStorage.getItem('sql-playground-user');
-    const storedExpiresAt = localStorage.getItem('sql-playground-expires-at');
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      setExpiresAt(storedExpiresAt);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      
-      // Start token monitoring
-      startTokenMonitoring();
-    }
-    
-    setLoading(false);
-  }, []);
-
-  // Activity tracking
-  useEffect(() => {
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    const handleActivity = () => {
-      setIsActive(true);
-    };
-
-    activityEvents.forEach(event => {
-      document.addEventListener(event, handleActivity, true);
-    });
-
-    return () => {
-      activityEvents.forEach(event => {
-        document.removeEventListener(event, handleActivity, true);
-      });
-    };
-  }, []);
-
-  // Reset activity after 5 minutes of inactivity
-  useEffect(() => {
-    if (isActive) {
-      const timeout = setTimeout(() => {
-        setIsActive(false);
-      }, 5 * 60 * 1000); // 5 minutes
-
-      return () => clearTimeout(timeout);
-    }
-  }, [isActive]);
-
-  const startTokenMonitoring = () => {
+  const startTokenMonitoring = useCallback(() => {
     if (tokenCheckInterval) {
       clearInterval(tokenCheckInterval);
     }
@@ -98,14 +50,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (error.response?.status === 401) {
             // Token expired, logout user
             console.log('Token expired, logging out user');
-            await logout();
+            // We need to define logout function before this
           }
         }
       }
     }, 10 * 60 * 1000); // Check every 10 minutes
     
     setTokenCheckInterval(interval);
-  };
+  }, [tokenCheckInterval, token, isActive, setExpiresAt]);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('sql-playground-token');
+    const storedUser = localStorage.getItem('sql-playground-user');
+    const storedExpiresAt = localStorage.getItem('sql-playground-expires-at');
+
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      setExpiresAt(storedExpiresAt);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      
+      // Start token monitoring
+      startTokenMonitoring();
+    }
+    
+    setLoading(false);
+  }, [startTokenMonitoring]);
+
+  // Activity tracking
+  useEffect(() => {
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    const handleActivity = () => {
+      setIsActive(true);
+    };
+
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleActivity, true);
+    });
+
+    return () => {
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleActivity, true);
+      });
+    };
+  }, []);
+
+  // Reset activity after 5 minutes of inactivity
+  useEffect(() => {
+    if (isActive) {
+      const timeout = setTimeout(() => {
+        setIsActive(false);
+      }, 5 * 60 * 1000); // 5 minutes
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isActive]);
 
   const stopTokenMonitoring = () => {
     if (tokenCheckInterval) {

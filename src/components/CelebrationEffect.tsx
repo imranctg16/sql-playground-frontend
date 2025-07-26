@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 
 interface CelebrationEffectProps {
   isVisible: boolean;
@@ -13,16 +13,16 @@ const CelebrationEffect: React.FC<CelebrationEffectProps> = ({
 }) => {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; emoji: string; delay: number }>>([]);
 
-  const emojis = ['🎉', '🎊', '✨', '🌟', '🎆', '💫', '🔥', '⭐', '🎁', '🏆'];
+  const emojis = useMemo(() => ['🎉', '🎊', '✨', '🌟', '🎆', '💫', '🔥', '⭐', '🎁', '🏆'], []);
   
-  const getParticleCount = () => {
+  const getParticleCount = useCallback(() => {
     switch (intensity) {
       case 'low': return 15;
       case 'medium': return 25;
       case 'high': return 40;
       default: return 25;
     }
-  };
+  }, [intensity]);
 
   useEffect(() => {
     if (isVisible) {
@@ -45,7 +45,7 @@ const CelebrationEffect: React.FC<CelebrationEffectProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible, intensity, onComplete]);
+  }, [isVisible, intensity, onComplete, emojis, getParticleCount]);
 
   if (!isVisible) return null;
 

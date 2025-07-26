@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
 import AuthPage from './components/AuthPage.tsx';
@@ -51,18 +51,7 @@ const MainWorkingApp: React.FC = () => {
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  useEffect(() => {
-    fetchQuestions();
-    fetchSchema();
-    loadUserProgress();
-    fetchStreak();
-  }, [user]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [questions, filters]);
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...questions];
 
     // Filter by difficulty
@@ -85,13 +74,9 @@ const MainWorkingApp: React.FC = () => {
     }
 
     setFilteredQuestions(filtered);
-  };
+  }, [questions, filters]);
 
-  const getUniqueCategories = () => {
-    return Array.from(new Set(questions.map(q => q.category))).sort();
-  };
-
-  const loadUserProgress = async () => {
+  const loadUserProgress = useCallback(async () => {
     if (user) {
       try {
         const response = await axios.get(`${API_BASE_URL}/user-progress`);
@@ -107,6 +92,21 @@ const MainWorkingApp: React.FC = () => {
         console.error('Failed to load user progress:', error);
       }
     }
+  }, [user]);
+
+  useEffect(() => {
+    fetchQuestions();
+    fetchSchema();
+    loadUserProgress();
+    fetchStreak();
+  }, [user, loadUserProgress]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [questions, filters, applyFilters]);
+
+  const getUniqueCategories = () => {
+    return Array.from(new Set(questions.map(q => q.category))).sort();
   };
 
   const fetchSchema = async () => {

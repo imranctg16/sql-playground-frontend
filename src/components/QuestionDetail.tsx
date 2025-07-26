@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Question, QuestionSolution } from '../types';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001/api';
+
 interface QuestionDetailProps {
   question: Question;
   onHintUsed?: () => void;
@@ -46,7 +48,7 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onHintUsed, h
 
     setSolutionLoading(true);
     try {
-      const response = await fetch(`http://localhost:8001/api/questions/${question.id}/solution`);
+      const response = await fetch(`${API_BASE_URL}/questions/${question.id}/solution`);
       const data = await response.json();
       
       if (data.success) {
