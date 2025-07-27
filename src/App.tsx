@@ -37,6 +37,7 @@ const MainApp: React.FC = () => {
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [schema, setSchema] = useState<TableSchema | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [solutionViewed, setSolutionViewed] = useState<{[questionId: number]: boolean}>({});
   const [activeSection, setActiveSection] = useState<'questions' | 'schema' | 'progress' | 'help'>('questions');
   const [difficulty, setDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
@@ -56,10 +57,21 @@ const MainApp: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    fetchQuestions();
-    fetchSchema();
-    loadUserProgress();
-    fetchStreak();
+    const initializeData = async () => {
+      setInitialLoading(true);
+      try {
+        await Promise.all([
+          fetchQuestions(),
+          fetchSchema(),
+          loadUserProgress(),
+          fetchStreak()
+        ]);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    initializeData();
     
     // Setup axios interceptors for token refresh
     setupAxiosInterceptors();
@@ -560,6 +572,26 @@ const MainApp: React.FC = () => {
       </div>
     </div>
   );
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <TokenExpirationWarning expiresAt={localStorage.getItem('sql-playground-expires-at')} />
+        <TopNavigation />
+        <LeftSidebar />
+        
+        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} pt-20`}>
+          <div className="p-6 flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">Loading Dashboard</h2>
+              <p className="text-gray-600">Fetching questions, schema, and progress data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
