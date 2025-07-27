@@ -32,7 +32,6 @@ const MainWorkingApp: React.FC = () => {
   const [showResultModal, setShowResultModal] = useState(false);
   const [helpExpanded, setHelpExpanded] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [retryAttempts, setRetryAttempts] = useState<{[key: string]: number}>({});
   const [isOffline, setIsOffline] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -81,7 +80,7 @@ const MainWorkingApp: React.FC = () => {
   }, [questions, filters]);
 
   const loadUserProgress = useCallback(async (skipRetry = false) => {
-    if (!user || (retryAttempts['progress'] >= 3 && !skipRetry)) {
+    if (!user) {
       return;
     }
     
@@ -94,20 +93,16 @@ const MainWorkingApp: React.FC = () => {
           questionsCompleted: dbProgress.total_completed || 0,
           completedQuestions: dbProgress.progress.map((p: any) => p.question_id) || []
         });
-        setRetryAttempts(prev => ({...prev, progress: 0}));
         setApiError(null);
       }
     } catch (error) {
       console.error('Failed to load user progress:', error);
       if (!skipRetry) {
-        setRetryAttempts(prev => ({...prev, progress: (prev.progress || 0) + 1}));
-        if ((retryAttempts['progress'] || 0) >= 3) {
-          setIsOffline(true);
-          setApiError('Unable to connect to server. Working in offline mode.');
-        }
+        setIsOffline(true);
+        setApiError('Unable to connect to server. Working in offline mode.');
       }
     }
-  }, [user, retryAttempts]);
+  }, [user]);
 
   useEffect(() => {
     applyFilters();
@@ -118,92 +113,70 @@ const MainWorkingApp: React.FC = () => {
   };
 
   const fetchSchema = useCallback(async (skipRetry = false) => {
-    if (retryAttempts['schema'] >= 3 && !skipRetry) {
-      return;
-    }
-    
     try {
       const response = await axios.get(`${API_BASE_URL}/schema`);
       setSchema(response.data.data);
-      setRetryAttempts(prev => ({...prev, schema: 0}));
       setApiError(null);
     } catch (error) {
       console.error('Failed to fetch schema:', error);
       if (!skipRetry) {
-        setRetryAttempts(prev => ({...prev, schema: (prev.schema || 0) + 1}));
-        if ((retryAttempts['schema'] || 0) >= 3) {
-          setIsOffline(true);
-          setApiError('Unable to connect to server. Working in offline mode.');
-        }
+        setIsOffline(true);
+        setApiError('Unable to connect to server. Working in offline mode.');
       }
     }
-  }, [retryAttempts]);
+  }, []);
 
   const fetchQuestions = useCallback(async (skipRetry = false) => {
-    if (retryAttempts['questions'] >= 3 && !skipRetry) {
-      return;
-    }
-    
     try {
       const response = await axios.get(`${API_BASE_URL}/questions`);
       setQuestions(response.data.data);
-      setRetryAttempts(prev => ({...prev, questions: 0}));
       setApiError(null);
     } catch (error) {
       console.error('Failed to fetch questions:', error);
       if (!skipRetry) {
-        setRetryAttempts(prev => ({...prev, questions: (prev.questions || 0) + 1}));
-        if ((retryAttempts['questions'] || 0) >= 3) {
-          setIsOffline(true);
-          setApiError('Unable to connect to server. Working in offline mode.');
-        }
+        setIsOffline(true);
+        setApiError('Unable to connect to server. Working in offline mode.');
       }
     }
-  }, [retryAttempts]);
+  }, []);
 
   const fetchStreak = useCallback(async (skipRetry = false) => {
-    if (retryAttempts['streak'] >= 3 && !skipRetry) {
-      return;
-    }
-    
     try {
       const response = await axios.get(`${API_BASE_URL}/streak`);
       setStreakData(response.data.data);
-      setRetryAttempts(prev => ({...prev, streak: 0}));
       setApiError(null);
     } catch (error) {
       console.error('Failed to fetch streak data:', error);
       if (!skipRetry) {
-        setRetryAttempts(prev => ({...prev, streak: (prev.streak || 0) + 1}));
-        if ((retryAttempts['streak'] || 0) >= 3) {
-          setIsOffline(true);
-          setApiError('Unable to connect to server. Working in offline mode.');
-        }
+        setIsOffline(true);
+        setApiError('Unable to connect to server. Working in offline mode.');
       }
     }
-  }, [retryAttempts]);
+  }, []);
 
   useEffect(() => {
+    if (!user) {
+      setIsInitialLoading(false);
+      return;
+    }
+
     const initializeApp = async () => {
-      if (user && !isOffline) {
-        setIsInitialLoading(true);
-        try {
-          await Promise.all([
-            fetchQuestions(),
-            fetchSchema(),
-            loadUserProgress(),
-            fetchStreak()
-          ]);
-        } finally {
-          setIsInitialLoading(false);
-        }
-      } else {
+      setIsInitialLoading(true);
+      try {
+        await Promise.all([
+          fetchQuestions(),
+          fetchSchema(), 
+          loadUserProgress(),
+          fetchStreak()
+        ]);
+      } finally {
         setIsInitialLoading(false);
       }
     };
     
     initializeApp();
-  }, [user, loadUserProgress, isOffline, fetchQuestions, fetchSchema, fetchStreak]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleQuestionSelect = (question: Question) => {
     setSelectedQuestion(question);
@@ -279,7 +252,6 @@ const MainWorkingApp: React.FC = () => {
   const handleRetryConnection = async () => {
     setIsOffline(false);
     setApiError(null);
-    setRetryAttempts({});
     
     // Retry all failed operations
     if (user) {
