@@ -236,7 +236,8 @@ const MainWorkingApp: React.FC = () => {
           await fetchQuestions();
         }
       }
-        
+      
+      if (result.is_correct && result.is_new_completion) {
         // Trigger celebration effect for successful queries
         setShowCelebration(true);
         setTimeout(() => setShowCelebration(false), 3000);
