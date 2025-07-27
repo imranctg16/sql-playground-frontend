@@ -31,6 +31,10 @@ const MainWorkingApp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [helpExpanded, setHelpExpanded] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [retryAttempts, setRetryAttempts] = useState<{[key: string]: number}>({});
+  const [isOffline, setIsOffline] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [filters, setFilters] = useState({
     difficulty: 'all' as 'all' | 'easy' | 'medium' | 'hard',
     category: 'all' as string,
@@ -76,30 +80,56 @@ const MainWorkingApp: React.FC = () => {
     setFilteredQuestions(filtered);
   }, [questions, filters]);
 
-  const loadUserProgress = useCallback(async () => {
-    if (user) {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/user-progress`);
-        if (response.data.success) {
-          const dbProgress = response.data.data;
-          setUserProgress({
-            totalScore: dbProgress.total_points || 0,
-            questionsCompleted: dbProgress.total_completed || 0,
-            completedQuestions: dbProgress.progress.map((p: any) => p.question_id) || []
-          });
+  const loadUserProgress = useCallback(async (skipRetry = false) => {
+    if (!user || (retryAttempts['progress'] >= 3 && !skipRetry)) {
+      return;
+    }
+    
+    try {
+      const response = await axios.get(`${API_BASE_URL}/user-progress`);
+      if (response.data.success) {
+        const dbProgress = response.data.data;
+        setUserProgress({
+          totalScore: dbProgress.total_points || 0,
+          questionsCompleted: dbProgress.total_completed || 0,
+          completedQuestions: dbProgress.progress.map((p: any) => p.question_id) || []
+        });
+        setRetryAttempts(prev => ({...prev, progress: 0}));
+        setApiError(null);
+      }
+    } catch (error) {
+      console.error('Failed to load user progress:', error);
+      if (!skipRetry) {
+        setRetryAttempts(prev => ({...prev, progress: (prev.progress || 0) + 1}));
+        if ((retryAttempts['progress'] || 0) >= 3) {
+          setIsOffline(true);
+          setApiError('Unable to connect to server. Working in offline mode.');
         }
-      } catch (error) {
-        console.error('Failed to load user progress:', error);
       }
     }
-  }, [user]);
+  }, [user, retryAttempts]);
 
   useEffect(() => {
-    fetchQuestions();
-    fetchSchema();
-    loadUserProgress();
-    fetchStreak();
-  }, [user, loadUserProgress]);
+    const initializeApp = async () => {
+      if (user && !isOffline) {
+        setIsInitialLoading(true);
+        try {
+          await Promise.all([
+            fetchQuestions(),
+            fetchSchema(),
+            loadUserProgress(),
+            fetchStreak()
+          ]);
+        } finally {
+          setIsInitialLoading(false);
+        }
+      } else {
+        setIsInitialLoading(false);
+      }
+    };
+    
+    initializeApp();
+  }, [user, loadUserProgress, isOffline]);
 
   useEffect(() => {
     applyFilters();
@@ -109,30 +139,69 @@ const MainWorkingApp: React.FC = () => {
     return Array.from(new Set(questions.map(q => q.category))).sort();
   };
 
-  const fetchSchema = async () => {
+  const fetchSchema = async (skipRetry = false) => {
+    if (retryAttempts['schema'] >= 3 && !skipRetry) {
+      return;
+    }
+    
     try {
       const response = await axios.get(`${API_BASE_URL}/schema`);
       setSchema(response.data.data);
+      setRetryAttempts(prev => ({...prev, schema: 0}));
+      setApiError(null);
     } catch (error) {
       console.error('Failed to fetch schema:', error);
+      if (!skipRetry) {
+        setRetryAttempts(prev => ({...prev, schema: (prev.schema || 0) + 1}));
+        if ((retryAttempts['schema'] || 0) >= 3) {
+          setIsOffline(true);
+          setApiError('Unable to connect to server. Working in offline mode.');
+        }
+      }
     }
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (skipRetry = false) => {
+    if (retryAttempts['questions'] >= 3 && !skipRetry) {
+      return;
+    }
+    
     try {
       const response = await axios.get(`${API_BASE_URL}/questions`);
       setQuestions(response.data.data);
+      setRetryAttempts(prev => ({...prev, questions: 0}));
+      setApiError(null);
     } catch (error) {
       console.error('Failed to fetch questions:', error);
+      if (!skipRetry) {
+        setRetryAttempts(prev => ({...prev, questions: (prev.questions || 0) + 1}));
+        if ((retryAttempts['questions'] || 0) >= 3) {
+          setIsOffline(true);
+          setApiError('Unable to connect to server. Working in offline mode.');
+        }
+      }
     }
   };
 
-  const fetchStreak = async () => {
+  const fetchStreak = async (skipRetry = false) => {
+    if (retryAttempts['streak'] >= 3 && !skipRetry) {
+      return;
+    }
+    
     try {
       const response = await axios.get(`${API_BASE_URL}/streak`);
       setStreakData(response.data.data);
+      setRetryAttempts(prev => ({...prev, streak: 0}));
+      setApiError(null);
     } catch (error) {
       console.error('Failed to fetch streak data:', error);
+      if (!skipRetry) {
+        setRetryAttempts(prev => ({...prev, streak: (prev.streak || 0) + 1}));
+        if ((retryAttempts['streak'] || 0) >= 3) {
+          setIsOffline(true);
+          setApiError('Unable to connect to server. Working in offline mode.');
+        }
+      }
     }
   };
 
@@ -159,11 +228,14 @@ const MainWorkingApp: React.FC = () => {
       setShowResultModal(true);
 
       // Update progress and streak for any query
-      await fetchStreak(); // Always update streak after any query
-      
-      if (result.is_correct && result.is_new_completion) {
-        await loadUserProgress();
-        await fetchQuestions();
+      if (!isOffline) {
+        await fetchStreak(); // Always update streak after any query
+        
+        if (result.is_correct && result.is_new_completion) {
+          await loadUserProgress();
+          await fetchQuestions();
+        }
+      }
         
         // Trigger celebration effect for successful queries
         setShowCelebration(true);
@@ -203,6 +275,22 @@ const MainWorkingApp: React.FC = () => {
     }
   };
 
+  const handleRetryConnection = async () => {
+    setIsOffline(false);
+    setApiError(null);
+    setRetryAttempts({});
+    
+    // Retry all failed operations
+    if (user) {
+      await Promise.all([
+        fetchQuestions(true),
+        fetchSchema(true), 
+        loadUserProgress(true),
+        fetchStreak(true)
+      ]);
+    }
+  };
+
   const handleLogout = () => {
     logout();
   };
@@ -238,8 +326,10 @@ const MainWorkingApp: React.FC = () => {
         });
         
         // Refresh questions to remove completion status
-        await fetchQuestions();
-        await fetchStreak();
+        if (!isOffline) {
+          await fetchQuestions();
+          await fetchStreak();
+        }
         
         setShowResetConfirmation(false);
         alert('Progress reset successfully!');
@@ -303,6 +393,19 @@ const MainWorkingApp: React.FC = () => {
   // Login screen
   if (!user) {
     return <AuthPage />;
+  }
+
+  // Loading screen
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-xl p-8 text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading SQL Playground</h2>
+          <p className="text-gray-600">Connecting to server and loading questions...</p>
+        </div>
+      </div>
+    );
   }
 
   // Main app
@@ -402,10 +505,40 @@ const MainWorkingApp: React.FC = () => {
         </div>
       </header>
 
+      {/* Error Banner */}
+      {apiError && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 fixed top-[6rem] left-0 right-0 z-40 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium">{apiError}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleRetryConnection}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
+              >
+                Retry Connection
+              </button>
+              <button
+                onClick={() => setApiError(null)}
+                className="text-red-700 hover:text-red-900"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Left Sidebar */}
       <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${
         sidebarCollapsed ? 'w-16' : 'w-64'
-      } fixed left-0 top-[6rem] h-[calc(100vh-6rem)] z-40 shadow-sm`}>
+      } fixed left-0 ${apiError ? 'top-[10rem]' : 'top-[6rem]'} ${apiError ? 'h-[calc(100vh-10rem)]' : 'h-[calc(100vh-6rem)]'} z-40 shadow-sm`}>
         
         <nav className="p-4 space-y-1">
           {[
@@ -487,7 +620,7 @@ const MainWorkingApp: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} pt-[6rem] relative min-h-screen`}>
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} ${apiError ? 'pt-[10rem]' : 'pt-[6rem]'} relative min-h-screen`}>
         <div className="p-6 relative z-0 pb-20">
           {activeSection === 'questions' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -563,11 +696,29 @@ const MainWorkingApp: React.FC = () => {
                   </div>
                 </div>
 
-                <QuestionList
-                  questions={filteredQuestions}
-                  selectedQuestion={selectedQuestion}
-                  onQuestionSelect={handleQuestionSelect}
-                />
+                {questions.length === 0 && isOffline ? (
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/50 p-6">
+                    <div className="text-center text-gray-500">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.75 0-5.254.926-7.292 2.5" />
+                      </svg>
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Questions Unavailable</h3>
+                      <p className="text-sm text-gray-500 mb-4">Unable to load questions while offline.</p>
+                      <button
+                        onClick={handleRetryConnection}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <QuestionList
+                    questions={filteredQuestions}
+                    selectedQuestion={selectedQuestion}
+                    onQuestionSelect={handleQuestionSelect}
+                  />
+                )}
               </div>
 
               {/* Main Content */}
@@ -672,7 +823,32 @@ const MainWorkingApp: React.FC = () => {
           )}
           
           {activeSection === 'schema' && (
-            <SchemaViewer schema={schema} />
+            schema ? (
+              <SchemaViewer schema={schema} />
+            ) : isOffline ? (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-center text-gray-500">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">Schema Unavailable</h3>
+                  <p className="text-sm text-gray-500 mb-4">Unable to load database schema while offline.</p>
+                  <button
+                    onClick={handleRetryConnection}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="text-center text-gray-500">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-sm">Loading schema...</p>
+                </div>
+              </div>
+            )
           )}
           
           {activeSection === 'progress' && (
