@@ -54,6 +54,22 @@ const MainWorkingApp: React.FC = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const applyFilters = useCallback(() => {
     let filtered = [...questions];
@@ -202,11 +218,11 @@ const MainWorkingApp: React.FC = () => {
       if (result.is_correct && result.is_new_completion) {
         // Trigger celebration effect for successful queries
         setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 3000);
+        setTimeout(() => setShowCelebration(false), 5000);
       } else if (result.is_correct) {
         // Show celebration even for already completed questions
         setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 2000);
+        setTimeout(() => setShowCelebration(false), 4000);
       }
     } catch (error: any) {
       console.error('Query execution error:', error);
@@ -307,7 +323,7 @@ const MainWorkingApp: React.FC = () => {
   const renderTable = (data: any[], title: string) => {
     if (!data || data.length === 0) {
       return (
-        <div className="p-4 text-gray-500 text-center">
+        <div className="p-3 sm:p-4 text-gray-500 text-center text-sm">
           No data to display
         </div>
       );
@@ -317,15 +333,15 @@ const MainWorkingApp: React.FC = () => {
 
     return (
       <div>
-        <h4 className="font-medium text-gray-800 mb-2">{title}</h4>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200">
+        {title && <h4 className="font-medium text-gray-800 mb-2 text-sm sm:text-base">{title}</h4>}
+        <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column}
-                    className="px-4 py-2 border-b text-left text-xs font-medium text-gray-500 uppercase"
+                    className="px-2 sm:px-3 md:px-4 py-2 border-b text-left text-xs font-medium text-gray-500 uppercase"
                   >
                     {column}
                   </th>
@@ -338,7 +354,7 @@ const MainWorkingApp: React.FC = () => {
                   {columns.map((column) => (
                     <td
                       key={column}
-                      className="px-4 py-2 border-b text-sm text-gray-900"
+                      className="px-2 sm:px-3 md:px-4 py-2 border-b text-xs sm:text-sm text-gray-900 break-words"
                     >
                       {String(row[column])}
                     </td>
@@ -395,7 +411,7 @@ const MainWorkingApp: React.FC = () => {
 
       {/* Top Navigation */}
       <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white shadow-xl fixed top-0 left-0 right-0 z-50 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -405,62 +421,67 @@ const MainWorkingApp: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-white/20 to-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20 animate-pulse-slow">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-white/20 to-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20 animate-pulse-slow">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                 </svg>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              <div className="hidden sm:block">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
                   SQL Playground
                 </h1>
-                <p className="text-blue-100 text-sm animate-pulse">Learn SQL • Build Queries • Master Database Skills</p>
+                <p className="text-blue-100 text-xs sm:text-sm animate-pulse hidden md:block">Learn SQL • Build Queries • Master Database Skills</p>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
             {/* Streak Display - Prominent */}
-            <div className="flex items-center space-x-2">
+            <div className="hidden sm:flex items-center space-x-2">
               <StreakDisplay streakData={streakData} variant="compact" />
             </div>
             
             {/* Stats Display */}
-            <div className="flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-xl px-6 py-3 border border-white/20 shadow-lg hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center space-x-2 sm:space-x-4 bg-white/10 backdrop-blur-sm rounded-xl px-3 sm:px-4 md:px-6 py-2 sm:py-3 border border-white/20 shadow-lg hover:bg-white/15 transition-all duration-300">
               <div className="text-center group">
-                <div className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-orange-200 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">
+                <div className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-to-r from-yellow-200 to-orange-200 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">
                   {userProgress.totalScore}
                 </div>
-                <div className="text-xs text-blue-100">Points</div>
+                <div className="text-xs text-blue-100 hidden sm:block">Points</div>
               </div>
-              <div className="w-px h-8 bg-white/20"></div>
+              <div className="w-px h-6 sm:h-8 bg-white/20"></div>
               <div className="text-center group">
-                <div className="text-xl font-bold bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">
+                <div className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-to-r from-green-200 to-emerald-200 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">
                   {userProgress.questionsCompleted}
                 </div>
-                <div className="text-xs text-blue-100">Solved</div>
+                <div className="text-xs text-blue-100 hidden sm:block">Solved</div>
               </div>
-              <div className="w-px h-8 bg-white/20"></div>
-              <div className="text-center group">
-                <div className="text-xl font-bold bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">
+              <div className="w-px h-6 sm:h-8 bg-white/20 hidden md:block"></div>
+              <div className="text-center group hidden md:block">
+                <div className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-to-r from-blue-200 to-cyan-200 bg-clip-text text-transparent transition-all duration-300 group-hover:scale-110">
                   {questions.length}
                 </div>
                 <div className="text-xs text-blue-100">Total</div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="text-right hidden md:block">
                 <div className="text-sm font-medium">Welcome, {user.name}!</div>
                 <div className="text-xs text-blue-200">{user.email}</div>
               </div>
               
               <button
                 onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                className="bg-red-500 hover:bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors"
               >
-                Logout
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </span>
               </button>
             </div>
           </div>
@@ -497,10 +518,20 @@ const MainWorkingApp: React.FC = () => {
         </div>
       )}
 
+      {/* Mobile sidebar overlay */}
+      {isMobile && !sidebarCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarCollapsed(true)}
+        />
+      )}
+
       {/* Left Sidebar */}
       <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      } fixed left-0 ${apiError ? 'top-[10rem]' : 'top-[6rem]'} ${apiError ? 'h-[calc(100vh-10rem)]' : 'h-[calc(100vh-6rem)]'} z-40 shadow-sm`}>
+        sidebarCollapsed ? 'w-16' : 'w-64 sm:w-72'
+      } fixed left-0 ${apiError ? 'top-[10rem]' : 'top-[6rem]'} ${apiError ? 'h-[calc(100vh-10rem)]' : 'h-[calc(100vh-6rem)]'} ${
+        isMobile ? 'z-40' : 'z-30'
+      } shadow-sm overflow-y-auto`}>
         
         <nav className="p-4 space-y-1">
           {[
@@ -582,12 +613,16 @@ const MainWorkingApp: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} ${apiError ? 'pt-[10rem]' : 'pt-[6rem]'} relative min-h-screen`}>
-        <div className="p-6 relative z-0 pb-20">
+      <div className={`transition-all duration-300 ${
+        sidebarCollapsed 
+          ? (isMobile ? 'ml-0' : 'ml-16')
+          : (isMobile ? 'ml-0' : 'ml-64 sm:ml-72')
+      } ${apiError ? 'pt-[10rem]' : 'pt-[6rem]'} relative min-h-screen`}>
+        <div className="p-3 sm:p-4 md:p-6 relative z-0 pb-20">
           {activeSection === 'questions' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
               {/* Questions List */}
-              <div className="lg:col-span-1 space-y-4">
+              <div className="xl:col-span-1 space-y-4">
                 {/* Filters */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/50 p-6 hover:shadow-xl transition-all duration-300 hover:bg-white/90">
                   <div className="flex items-center space-x-2 mb-4">
@@ -684,7 +719,7 @@ const MainWorkingApp: React.FC = () => {
               </div>
 
               {/* Main Content */}
-              <div className="lg:col-span-2">
+              <div className="xl:col-span-2">
                 {selectedQuestion ? (
                   <div className="space-y-4">
                     <QuestionDetail 
@@ -1017,23 +1052,23 @@ const MainWorkingApp: React.FC = () => {
 
       {/* Results Modal */}
       {showResultModal && queryResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">Query Results</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
+            <div className="p-3 sm:p-4 border-b flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-800">Query Results</h3>
               <button
                 onClick={() => setShowResultModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             
-            <div className="p-4 max-h-[calc(90vh-120px)] overflow-y-auto">
+            <div className="p-3 sm:p-4 max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)] overflow-y-auto">
               <div
-                className={`p-4 rounded-lg mb-4 ${
+                className={`p-3 sm:p-4 rounded-lg mb-4 ${
                   queryResult.is_correct
                     ? 'bg-green-50 border border-green-200'
                     : 'bg-red-50 border border-red-200'
@@ -1041,21 +1076,21 @@ const MainWorkingApp: React.FC = () => {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span
-                    className={`text-lg ${
+                    className={`text-base sm:text-lg ${
                       queryResult.is_correct ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
                     {queryResult.is_correct ? '✅' : '❌'}
                   </span>
                   <span
-                    className={`font-medium ${
+                    className={`font-medium text-sm sm:text-base ${
                       queryResult.is_correct ? 'text-green-800' : 'text-red-800'
                     }`}
                   >
                     {queryResult.is_correct ? 'Correct!' : 'Incorrect'}
                   </span>
                   {queryResult.is_correct && (
-                    <span className="text-green-600 font-medium">
+                    <span className="text-green-600 font-medium text-sm sm:text-base">
                       +{queryResult.points_earned} points
                     </span>
                   )}
@@ -1097,14 +1132,40 @@ const MainWorkingApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  {renderTable(queryResult.user_result, 'Your Result')}
+              {/* Result Comparison - More Prominent */}
+              {queryResult.is_correct ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-4">
+                  <h4 className="text-green-800 font-semibold mb-3 text-sm sm:text-base flex items-center">
+                    <span className="mr-2">🎉</span>
+                    Perfect Match! Your result matches the expected output.
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <h5 className="font-medium text-green-700 mb-2 text-sm">Your Result:</h5>
+                      {renderTable(queryResult.user_result, '')}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  {renderTable(queryResult.expected_result, 'Expected Result')}
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                    <h4 className="text-red-800 font-semibold mb-3 text-sm sm:text-base flex items-center">
+                      <span className="mr-2">📊</span>
+                      Result Comparison
+                    </h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div>
+                        <h5 className="font-medium text-red-700 mb-2 text-sm">Your Result:</h5>
+                        {renderTable(queryResult.user_result, '')}
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-green-700 mb-2 text-sm">Expected Result:</h5>
+                        {renderTable(queryResult.expected_result, '')}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -37,6 +37,7 @@ const MainApp: React.FC = () => {
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [schema, setSchema] = useState<TableSchema | null>(null);
   const [loading, setLoading] = useState(false);
+  const [solutionViewed, setSolutionViewed] = useState<{[questionId: number]: boolean}>({});
   const [activeSection, setActiveSection] = useState<'questions' | 'schema' | 'progress' | 'help'>('questions');
   const [difficulty, setDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
   const [userProgress, setUserProgress] = useState<UserProgress>({
@@ -154,10 +155,15 @@ const MainApp: React.FC = () => {
     activityTracker.setTaskState(true, 'query_execution');
     
     try {
+      const hintsUsed = userProgress.hintsUsed?.[selectedQuestion.id] || 0;
+      const viewedSolution = solutionViewed[selectedQuestion.id] || false;
+      
       const response = await axios.post(`${API_BASE_URL}/evaluate`, {
         question_id: selectedQuestion.id,
         user_sql: query,
-        query_type: queryType
+        query_type: queryType,
+        hints_used: hintsUsed,
+        viewed_solution: viewedSolution
       });
 
       const result = response.data.data;
@@ -196,6 +202,13 @@ const MainApp: React.FC = () => {
       }
     };
     saveUserProgress(newProgress);
+  };
+
+  const handleSolutionViewed = (questionId: number) => {
+    setSolutionViewed(prev => ({
+      ...prev,
+      [questionId]: true
+    }));
   };
 
   // Top Navigation Component
@@ -590,6 +603,7 @@ const MainApp: React.FC = () => {
                       question={selectedQuestion} 
                       onHintUsed={() => handleHintUsed(selectedQuestion.id, selectedQuestion.hint_penalty || 2)}
                       hintsUsed={userProgress.hintsUsed?.[selectedQuestion.id] || 0}
+                      onSolutionViewed={() => handleSolutionViewed(selectedQuestion.id)}
                     />
                     <QueryEditor
                       onQuerySubmit={handleQuerySubmit}

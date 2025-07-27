@@ -8,9 +8,10 @@ interface QuestionDetailProps {
   onHintUsed?: () => void;
   hintsUsed?: number;
   renderMode?: 'header' | 'sections' | 'full';
+  onSolutionViewed?: () => void;
 }
 
-const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onHintUsed, hintsUsed = 0, renderMode = 'full' }) => {
+const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onHintUsed, hintsUsed = 0, renderMode = 'full', onSolutionViewed }) => {
   const [showHint, setShowHint] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showHintSection, setShowHintSection] = useState(false);
@@ -54,6 +55,10 @@ const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onHintUsed, h
       if (data.success) {
         setSolution(data.data);
         setShowSolution(true);
+        // Call the callback to track that solution was viewed
+        if (onSolutionViewed) {
+          onSolutionViewed();
+        }
       } else {
         console.error('Failed to fetch solution:', data.message);
       }

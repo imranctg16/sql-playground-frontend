@@ -72,14 +72,14 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold text-gray-800">Query Editor</h2>
+      <div className="p-3 sm:p-4 border-b">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-800">Query Editor</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4">
+      <form onSubmit={handleSubmit} className="p-3 sm:p-4">
         <div className="mb-4">
-          <div className="flex gap-4 mb-2">
-            <label className="flex items-center">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-2">
+            <label className="flex items-center text-sm">
               <input
                 type="radio"
                 value="sql"
@@ -89,7 +89,7 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
               />
               SQL Query
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center text-sm">
               <input
                 type="radio"
                 value="laravel"
@@ -108,8 +108,8 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
                 ? 'SELECT * FROM products WHERE price > 100;'
                 : 'Product::where("price", ">", 100)->get();'
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm resize-y"
-            rows={6}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-xs sm:text-sm resize-y"
+            rows={4}
             disabled={loading}
           />
         </div>
@@ -118,10 +118,10 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
         {result && !result.is_correct && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
             <div className="flex items-start gap-2">
-              <span className="text-red-600 text-lg">❌</span>
+              <span className="text-red-600 text-base sm:text-lg">❌</span>
               <div className="flex-1">
-                <h4 className="font-medium text-red-800 text-sm mb-1">Query Error</h4>
-                <p className="text-red-700 text-sm mb-2">{result.message}</p>
+                <h4 className="font-medium text-red-800 text-xs sm:text-sm mb-1">Query Error</h4>
+                <p className="text-red-700 text-xs sm:text-sm mb-2">{result.message}</p>
                 
                 {result.error_details && (
                   <div className="text-xs">
@@ -146,7 +146,7 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
           {loading ? 'Running...' : 'Run Query'}
         </button>
@@ -154,16 +154,16 @@ const QueryEditor: React.FC<QueryEditorProps> = ({
 
       {result && result.is_correct && (
         <div className="border-t">
-          <div className="p-4">
-            <div className="p-4 rounded-lg mb-4 bg-green-50 border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg text-green-600">✅</span>
-                <span className="font-medium text-green-800">Correct!</span>
-                <span className="text-green-600 font-medium">
+          <div className="p-3 sm:p-4">
+            <div className="p-3 sm:p-4 rounded-lg mb-4 bg-green-50 border border-green-200">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="text-base sm:text-lg text-green-600">✅</span>
+                <span className="font-medium text-green-800 text-sm sm:text-base">Correct!</span>
+                <span className="text-green-600 font-medium text-sm sm:text-base">
                   +{result.points_earned} points
                 </span>
               </div>
-              <p className="text-sm text-green-700">{result.message}</p>
+              <p className="text-xs sm:text-sm text-green-700">{result.message}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
