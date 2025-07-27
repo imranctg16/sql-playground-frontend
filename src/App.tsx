@@ -59,16 +59,19 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     const initializeData = async () => {
       setInitialLoading(true);
-      try {
-        await Promise.all([
+      
+      // Add minimum loading time to ensure user sees the loading screen
+      const [dataResults] = await Promise.all([
+        Promise.all([
           fetchQuestions(),
           fetchSchema(),
           loadUserProgress(),
           fetchStreak()
-        ]);
-      } finally {
-        setInitialLoading(false);
-      }
+        ]),
+        new Promise(resolve => setTimeout(resolve, 1500)) // Minimum 1.5 seconds
+      ]);
+      
+      setInitialLoading(false);
     };
 
     initializeData();
