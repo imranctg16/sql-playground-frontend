@@ -575,18 +575,19 @@ const MainApp: React.FC = () => {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <TokenExpirationWarning expiresAt={localStorage.getItem('sql-playground-expires-at')} />
-        <TopNavigation />
-        <LeftSidebar />
-        
-        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} pt-20`}>
-          <div className="p-6 flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Loading Dashboard</h2>
-              <p className="text-gray-600">Fetching questions, schema, and progress data...</p>
-            </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">SQL Playground</h1>
+          <h2 className="text-xl font-semibold text-gray-700 mb-3">Loading Dashboard</h2>
+          <p className="text-gray-600 max-w-md">
+            Initializing your SQL learning environment... <br />
+            Fetching questions, database schema, progress data, and streak information.
+          </p>
+          <div className="mt-6 flex justify-center space-x-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
           </div>
         </div>
       </div>
