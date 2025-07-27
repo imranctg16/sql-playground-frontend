@@ -34,6 +34,7 @@ const MainWorkingApp: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [filters, setFilters] = useState({
     difficulty: 'all' as 'all' | 'easy' | 'medium' | 'hard',
     category: 'all' as string,
@@ -79,10 +80,8 @@ const MainWorkingApp: React.FC = () => {
     setFilteredQuestions(filtered);
   }, [questions, filters]);
 
-  const loadUserProgress = useCallback(async (skipRetry = false) => {
-    if (!user) {
-      return;
-    }
+  const loadUserProgress = async () => {
+    if (!user) return;
     
     try {
       const response = await axios.get(`${API_BASE_URL}/user-progress`);
@@ -93,16 +92,13 @@ const MainWorkingApp: React.FC = () => {
           questionsCompleted: dbProgress.total_completed || 0,
           completedQuestions: dbProgress.progress.map((p: any) => p.question_id) || []
         });
-        setApiError(null);
       }
     } catch (error) {
       console.error('Failed to load user progress:', error);
-      if (!skipRetry) {
-        setIsOffline(true);
-        setApiError('Unable to connect to server. Working in offline mode.');
-      }
+      setIsOffline(true);
+      setApiError('Unable to connect to server. Working in offline mode.');
     }
-  }, [user]);
+  };
 
   useEffect(() => {
     applyFilters();
@@ -112,56 +108,49 @@ const MainWorkingApp: React.FC = () => {
     return Array.from(new Set(questions.map(q => q.category))).sort();
   };
 
-  const fetchSchema = useCallback(async (skipRetry = false) => {
+  const fetchSchema = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/schema`);
       setSchema(response.data.data);
-      setApiError(null);
     } catch (error) {
       console.error('Failed to fetch schema:', error);
-      if (!skipRetry) {
-        setIsOffline(true);
-        setApiError('Unable to connect to server. Working in offline mode.');
-      }
+      setIsOffline(true);
+      setApiError('Unable to connect to server. Working in offline mode.');
     }
-  }, []);
+  };
 
-  const fetchQuestions = useCallback(async (skipRetry = false) => {
+  const fetchQuestions = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/questions`);
       setQuestions(response.data.data);
-      setApiError(null);
     } catch (error) {
       console.error('Failed to fetch questions:', error);
-      if (!skipRetry) {
-        setIsOffline(true);
-        setApiError('Unable to connect to server. Working in offline mode.');
-      }
+      setIsOffline(true);
+      setApiError('Unable to connect to server. Working in offline mode.');
     }
-  }, []);
+  };
 
-  const fetchStreak = useCallback(async (skipRetry = false) => {
+  const fetchStreak = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/streak`);
       setStreakData(response.data.data);
-      setApiError(null);
     } catch (error) {
       console.error('Failed to fetch streak data:', error);
-      if (!skipRetry) {
-        setIsOffline(true);
-        setApiError('Unable to connect to server. Working in offline mode.');
-      }
+      setIsOffline(true);
+      setApiError('Unable to connect to server. Working in offline mode.');
     }
-  }, []);
+  };
 
   useEffect(() => {
-    if (!user) {
+    if (!user || hasInitialized) {
       setIsInitialLoading(false);
       return;
     }
 
     const initializeApp = async () => {
       setIsInitialLoading(true);
+      setHasInitialized(true);
+      
       try {
         await Promise.all([
           fetchQuestions(),
@@ -176,7 +165,7 @@ const MainWorkingApp: React.FC = () => {
     
     initializeApp();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, hasInitialized]);
 
   const handleQuestionSelect = (question: Question) => {
     setSelectedQuestion(question);
@@ -256,10 +245,10 @@ const MainWorkingApp: React.FC = () => {
     // Retry all failed operations
     if (user) {
       await Promise.all([
-        fetchQuestions(true),
-        fetchSchema(true), 
-        loadUserProgress(true),
-        fetchStreak(true)
+        fetchQuestions(),
+        fetchSchema(), 
+        loadUserProgress(),
+        fetchStreak()
       ]);
     }
   };
