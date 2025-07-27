@@ -110,28 +110,6 @@ const MainWorkingApp: React.FC = () => {
   }, [user, retryAttempts]);
 
   useEffect(() => {
-    const initializeApp = async () => {
-      if (user && !isOffline) {
-        setIsInitialLoading(true);
-        try {
-          await Promise.all([
-            fetchQuestions(),
-            fetchSchema(),
-            loadUserProgress(),
-            fetchStreak()
-          ]);
-        } finally {
-          setIsInitialLoading(false);
-        }
-      } else {
-        setIsInitialLoading(false);
-      }
-    };
-    
-    initializeApp();
-  }, [user, loadUserProgress, isOffline]);
-
-  useEffect(() => {
     applyFilters();
   }, [questions, filters, applyFilters]);
 
@@ -139,7 +117,7 @@ const MainWorkingApp: React.FC = () => {
     return Array.from(new Set(questions.map(q => q.category))).sort();
   };
 
-  const fetchSchema = async (skipRetry = false) => {
+  const fetchSchema = useCallback(async (skipRetry = false) => {
     if (retryAttempts['schema'] >= 3 && !skipRetry) {
       return;
     }
@@ -159,9 +137,9 @@ const MainWorkingApp: React.FC = () => {
         }
       }
     }
-  };
+  }, [retryAttempts]);
 
-  const fetchQuestions = async (skipRetry = false) => {
+  const fetchQuestions = useCallback(async (skipRetry = false) => {
     if (retryAttempts['questions'] >= 3 && !skipRetry) {
       return;
     }
@@ -181,9 +159,9 @@ const MainWorkingApp: React.FC = () => {
         }
       }
     }
-  };
+  }, [retryAttempts]);
 
-  const fetchStreak = async (skipRetry = false) => {
+  const fetchStreak = useCallback(async (skipRetry = false) => {
     if (retryAttempts['streak'] >= 3 && !skipRetry) {
       return;
     }
@@ -203,7 +181,29 @@ const MainWorkingApp: React.FC = () => {
         }
       }
     }
-  };
+  }, [retryAttempts]);
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      if (user && !isOffline) {
+        setIsInitialLoading(true);
+        try {
+          await Promise.all([
+            fetchQuestions(),
+            fetchSchema(),
+            loadUserProgress(),
+            fetchStreak()
+          ]);
+        } finally {
+          setIsInitialLoading(false);
+        }
+      } else {
+        setIsInitialLoading(false);
+      }
+    };
+    
+    initializeApp();
+  }, [user, loadUserProgress, isOffline, fetchQuestions, fetchSchema, fetchStreak]);
 
   const handleQuestionSelect = (question: Question) => {
     setSelectedQuestion(question);
