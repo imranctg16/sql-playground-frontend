@@ -7,7 +7,6 @@ import QuestionDetail from './components/QuestionDetail.tsx';
 import QueryEditor from './components/QueryEditor.tsx';
 import SchemaViewer from './components/SchemaViewer.tsx';
 import StreakDisplay from './components/StreakDisplay.tsx';
-import CelebrationEffect from './components/CelebrationEffect.tsx';
 import { Question, QueryResult, TableSchema } from './types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001/api';
@@ -51,7 +50,6 @@ const MainWorkingApp: React.FC = () => {
     last_activity_date: null,
     is_active_today: false
   });
-  const [showCelebration, setShowCelebration] = useState(false);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -215,15 +213,6 @@ const MainWorkingApp: React.FC = () => {
         }
       }
       
-      if (result.is_correct && result.is_new_completion) {
-        // Trigger celebration effect for successful queries
-        setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 5000);
-      } else if (result.is_correct) {
-        // Show celebration even for already completed questions
-        setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 4000);
-      }
     } catch (error: any) {
       console.error('Query execution error:', error);
       
@@ -1165,12 +1154,6 @@ const MainWorkingApp: React.FC = () => {
         </div>
       )}
       
-      {/* Celebration Effect */}
-      <CelebrationEffect 
-        isVisible={showCelebration} 
-        onComplete={() => setShowCelebration(false)}
-        intensity="high"
-      />
     </div>
     </>
   );
