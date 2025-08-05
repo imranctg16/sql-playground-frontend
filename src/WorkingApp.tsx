@@ -1132,40 +1132,34 @@ const MainWorkingApp: React.FC = () => {
                 </div>
               </div>
 
-              {/* Result Comparison - More Prominent */}
-              {queryResult.is_correct ? (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-4">
-                  <h4 className="text-green-800 font-semibold mb-3 text-sm sm:text-base flex items-center">
-                    <span className="mr-2">🎉</span>
-                    Perfect Match! Your result matches the expected output.
-                  </h4>
-                  <div className="space-y-4">
-                    <div>
-                      <h5 className="font-medium text-green-700 mb-2 text-sm">Your Result:</h5>
-                      {renderTable(queryResult.user_result, '')}
-                    </div>
+              {/* Result Comparison - Always show results */}
+              <div className={`border rounded-lg p-3 sm:p-4 mb-4 ${
+                queryResult.is_correct 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <h4 className={`font-semibold mb-3 text-sm sm:text-base flex items-center ${
+                  queryResult.is_correct ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  <span className="mr-2">{queryResult.is_correct ? '🎉' : '📊'}</span>
+                  {queryResult.is_correct 
+                    ? 'Perfect Match! Your result matches the expected output.' 
+                    : 'Result Comparison'
+                  }
+                </h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <h5 className={`font-medium mb-2 text-sm ${
+                      queryResult.is_correct ? 'text-green-700' : 'text-red-700'
+                    }`}>Your Result:</h5>
+                    {renderTable(queryResult.user_result, '')}
+                  </div>
+                  <div>
+                    <h5 className="font-medium text-green-700 mb-2 text-sm">Expected Result:</h5>
+                    {renderTable(queryResult.expected_result, '')}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
-                    <h4 className="text-red-800 font-semibold mb-3 text-sm sm:text-base flex items-center">
-                      <span className="mr-2">📊</span>
-                      Result Comparison
-                    </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div>
-                        <h5 className="font-medium text-red-700 mb-2 text-sm">Your Result:</h5>
-                        {renderTable(queryResult.user_result, '')}
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-green-700 mb-2 text-sm">Expected Result:</h5>
-                        {renderTable(queryResult.expected_result, '')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
